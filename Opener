@@ -87,7 +87,7 @@
         });
     }
 
-    async function openPacksSequential(pack, count) {
+    async function openPacksSequential(pack, count, delay) {
         isOpening = true;
         resultMap = {};
         resultPanel.innerHTML = '';
@@ -102,9 +102,7 @@
             }
             appendBlook(blook);
             opened++;
-            const rarity = blacket.blooks[blook]?.rarity || 'Unknown';
-            const wait = Math.max(7, blacket.rarities[rarity]?.wait || 50);
-            await new Promise(r => setTimeout(r, wait));
+            await new Promise(r => setTimeout(r, delay)); // Delay between opens
         }
 
         showSummary(opened);
@@ -141,11 +139,16 @@
         padding: '12px 15px', borderRadius: '12px', backgroundColor: '#1b1b2f',
         color: '#e0d9ff', border: '1px solid #7c56ff', width: '100%', cursor: 'pointer'
     });
-    Object.keys(blacket.packs).forEach(p => {
-        const o = document.createElement('option');
-        o.value = p; o.textContent = p;
-        packSelect.appendChild(o);
-    });
+
+    // Only packs in the market
+    Object.keys(blacket.packs)
+        .filter(p => blacket.packs[p].isMarket || (Array.isArray(blacket.market) && blacket.market.includes(p)))
+        .forEach(p => {
+            const o = document.createElement('option');
+            o.value = p;
+            o.textContent = p;
+            packSelect.appendChild(o);
+        });
     form.appendChild(packSelect);
 
     const tokensLabel = document.createElement('label');
@@ -159,6 +162,18 @@
         color: '#e0d9ff', border: '1px solid #7c56ff', width: '100%', textAlign: 'center'
     });
     form.appendChild(tokenInput);
+
+    const delayLabel = document.createElement('label');
+    delayLabel.textContent = 'Delay (ms) Between Opens:';
+    form.appendChild(delayLabel);
+
+    const delayInput = document.createElement('input');
+    delayInput.type = 'number'; delayInput.min = '50'; delayInput.value = '500';
+    Object.assign(delayInput.style, {
+        padding: '12px 15px', borderRadius: '12px', backgroundColor: '#1b1b2f',
+        color: '#e0d9ff', border: '1px solid #7c56ff', width: '100%', textAlign: 'center'
+    });
+    form.appendChild(delayInput);
 
     const packInfo = document.createElement('div');
     packInfo.style = 'color:#bb86fc;font-size:0.95em;margin-top:-10px;';
@@ -189,13 +204,14 @@
         const pack = packSelect.value;
         const spend = parseInt(tokenInput.value, 10);
         const price = blacket.packs[pack].price;
+        const delay = parseInt(delayInput.value, 10);
         const maxSpend = blacket.user.tokens;
         if (isNaN(spend) || spend < price) return alert(`❌ You need at least ${price} tokens to open one ${pack}.`);
         if (spend > maxSpend) return alert(`❌ You only have ${maxSpend} tokens.`);
         const count = Math.floor(spend / price);
         if (count === 0) return alert("❌ Not enough tokens to open any pack.");
         modal.style.display = 'none';
-        openPacksSequential(pack, count);
+        openPacksSequential(pack, count, delay);
     };
     form.appendChild(confirmBtn);
 
