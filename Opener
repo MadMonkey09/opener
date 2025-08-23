@@ -1,3 +1,13 @@
+// ==UserScript==
+// @name         Blacket Pack Opener - Modern Look
+// @namespace    http://tampermonkey.net/
+// @version      1.9
+// @description  Opens Blacket packs with a sleek modern UI and live display
+// @author       ChatGPT
+// @match        *://*.blacket.org/*
+// @grant        none
+// ==/UserScript==
+
 (function () {
     'use strict';
 
@@ -10,22 +20,46 @@
     fontLink.rel = 'stylesheet';
     document.head.appendChild(fontLink);
 
+    // Result panel - modern clean style
     const resultPanel = document.createElement('section');
     resultPanel.id = 'blookTally';
     Object.assign(resultPanel.style, {
-        display: 'none', position: 'fixed', top: '90px', right: '40px', width: '320px',
-        maxHeight: '420px', backgroundColor: '#1e1e2f', color: '#d8d8f2', padding: '15px',
-        border: '2px solid #7c56ff', borderRadius: '16px', boxShadow: '0 8px 24px rgba(124, 86, 255, 0.4)',
-        zIndex: 2100, overflowY: 'auto', transition: 'right 0.35s ease', fontFamily: font,
-        fontSize: '1em', userSelect: 'none', scrollbarWidth: 'thin', scrollbarColor: '#7c56ff transparent'
+        display: 'none',
+        position: 'fixed',
+        top: '90px',
+        right: '-140px',
+        width: '320px',
+        maxHeight: '420px',
+        backgroundColor: '#1e1e2f',
+        color: '#d8d8f2',
+        padding: '15px',
+        border: '2px solid #7c56ff',
+        borderRadius: '16px',
+        boxShadow: '0 8px 24px rgba(124, 86, 255, 0.4)',
+        zIndex: 2100,
+        overflowY: 'auto',
+        transition: 'right 0.35s ease',
+        fontFamily: font,
+        fontSize: '1em',
+        userSelect: 'none',
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#7c56ff transparent',
     });
     document.body.appendChild(resultPanel);
 
+    // Custom scrollbar for WebKit browsers
     const style = document.createElement('style');
     style.textContent = `
-        #blookTally::-webkit-scrollbar { width: 8px; }
-        #blookTally::-webkit-scrollbar-track { background: transparent; }
-        #blookTally::-webkit-scrollbar-thumb { background-color: #7c56ff; border-radius: 8px; }
+      #blookTally::-webkit-scrollbar {
+        width: 8px;
+      }
+      #blookTally::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #blookTally::-webkit-scrollbar-thumb {
+        background-color: #7c56ff;
+        border-radius: 8px;
+      }
     `;
     document.head.appendChild(style);
 
@@ -37,39 +71,65 @@
 
         if (!resultMap[name]) {
             const item = document.createElement('div');
-            item.style = `display:flex;align-items:center;margin:8px 0;border-left:5px solid ${color};padding:10px 12px;background-color:#2a2a45;border-radius:10px;box-shadow:0 2px 8px rgba(124,86,255,0.15);`;
-            item.innerHTML = `<img src="${img}" alt="${name}" style="width:30px;height:30px;margin-right:12px;border-radius:6px;box-shadow:0 0 5px ${color};"><span style="color:${color};font-weight:700;font-size:1.05em;">${name} (<span class="blook-count">1</span>)</span>`;
+            item.style = `
+                display:flex;
+                align-items:center;
+                margin:8px 0;
+                border-left:5px solid ${color};
+                padding:10px 12px;
+                background-color: #2a2a45;
+                border-radius: 10px;
+                box-shadow: 0 2px 8px rgba(124, 86, 255, 0.15);
+                transition: background-color 0.3s ease;
+                cursor: default;
+            `;
+            item.innerHTML = `
+                <img src="${img}" alt="${name}" style="width:30px; height:30px; margin-right:12px; border-radius:6px; box-shadow: 0 0 5px ${color};">
+                <span style="color:${color}; font-weight: 700; font-size: 1.05em;">${name} (<span class="blook-count">1</span>)</span>
+            `;
             resultMap[name] = { count: 1, element: item };
             resultPanel.appendChild(item);
         } else {
             resultMap[name].count++;
+            resultMap[name].element.querySelector('.blook-count').textContent = resultMap[name].count;
+            // subtle pulse effect on count increment
             const span = resultMap[name].element.querySelector('.blook-count');
-            span.textContent = resultMap[name].count;
             span.style.transition = 'transform 0.15s ease';
             span.style.transform = 'scale(1.3)';
-            setTimeout(() => span.style.transform = 'scale(1)', 150);
+            setTimeout(() => { span.style.transform = 'scale(1)'; }, 150);
         }
         resultPanel.scrollTop = resultPanel.scrollHeight;
     }
 
     function showSummary(total) {
         const summary = document.createElement('div');
-        summary.style = 'margin-top:15px;font-weight:700;font-size:1.25em;text-align:center;color:#bb86fc;';
+        summary.style = 'margin-top: 15px; font-weight: 700; font-size: 1.25em; text-align: center; color: #bb86fc;';
         summary.textContent = `Total Packs Opened: ${total}`;
         resultPanel.appendChild(summary);
 
         const repeatBtn = document.createElement('button');
         repeatBtn.textContent = 'Open More Packs';
         Object.assign(repeatBtn.style, {
-            marginTop: '18px', width: '100%', padding: '12px 0', fontSize: '1em', fontWeight: '700',
-            color: '#fff', backgroundColor: '#7c56ff', border: 'none', borderRadius: '12px', cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(124,86,255,0.5)', fontFamily: font,
+            marginTop: '18px',
+            width: '100%',
+            padding: '12px 0',
+            fontSize: '1em',
+            fontWeight: '700',
+            color: '#fff',
+            backgroundColor: '#7c56ff',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(124, 86, 255, 0.5)',
+            transition: 'background-color 0.3s ease',
+            fontFamily: font,
+            userSelect: 'none',
         });
         repeatBtn.onmouseenter = () => repeatBtn.style.backgroundColor = '#936dff';
         repeatBtn.onmouseleave = () => repeatBtn.style.backgroundColor = '#7c56ff';
         repeatBtn.onclick = () => {
             modal.style.display = 'block';
-            resultPanel.style.right = '40px';
+            resultPanel.style.right = '-140px';
             resultPanel.innerHTML = '';
             resultMap = {};
         };
@@ -77,8 +137,8 @@
     }
 
     async function openPack(pack) {
-        return new Promise(resolve => {
-            blacket.requests.post('/worker3/open', { pack }, data => {
+        return new Promise((resolve) => {
+            blacket.requests.post('/worker3/open', { pack }, (data) => {
                 if (data.error) return resolve(null);
                 blacket.user.tokens -= blacket.packs[pack].price;
                 blacket.user.blooks[data.blook] = (blacket.user.blooks[data.blook] || 0) + 1;
@@ -87,147 +147,213 @@
         });
     }
 
-    async function openPacksSequential(pack, count, delay) {
+    async function openPacksSequential(pack, count) {
+        if (isOpening) return;
         isOpening = true;
         resultMap = {};
         resultPanel.innerHTML = '';
         resultPanel.style.display = 'block';
 
         let opened = 0;
-        while (opened < count && isOpening) {
-            const blook = await openPack(pack);
-            if (!blook) {
-                await new Promise(r => setTimeout(r, 50));
-                continue;
+        while (opened < count) {
+            try {
+                const attainedBlook = await openPack(pack);
+                if (!attainedBlook) {
+                    console.warn('Error opening pack.');
+                    await new Promise(r => setTimeout(r, 10));
+                    continue;
+                }
+
+                appendBlook(attainedBlook);
+
+                const rarity = blacket.blooks[attainedBlook]?.rarity || 'Unknown';
+                const color = blacket.rarities[rarity]?.color || '#7c56ff';
+                console.log(`%c ${attainedBlook} %c(${opened + 1}/${count})`,
+                    `color:#fff;font-size:1.5em;text-shadow:0 0 .4em rgba(255,255,255,0.5),-.1em -.1em 0 #fff;font-family:Roboto Mono;background:-webkit-linear-gradient(45deg,${color},${color});-webkit-background-clip:text;-moz-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`,
+                    'font-size:.8em;color:#ccc');
+
+                opened++;
+
+                const baseWait = blacket.rarities[rarity]?.wait ?? 50;
+                const waitTime = Math.max(7, baseWait);
+                await new Promise(r => setTimeout(r, waitTime));
+
+            } catch (err) {
+                console.warn("Error opening pack:", err);
+                await new Promise(r => setTimeout(r, 10));
             }
-            appendBlook(blook);
-            opened++;
-            await new Promise(r => setTimeout(r, delay)); // Delay between opens
         }
 
         showSummary(opened);
-        resultPanel.style.right = '40px';
+        resultPanel.style.right = '20px';
         isOpening = false;
     }
 
+    // Modal for input - modern card style with close button
     const modal = document.createElement('div');
+    modal.id = 'packModal';
     Object.assign(modal.style, {
-        position: 'fixed', top: '18%', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#2a2a45',
-        padding: '30px 40px', borderRadius: '18px', boxShadow: '0 12px 36px rgba(124,86,255,0.7)',
-        zIndex: 3100, color: '#e0d9ff', fontFamily: font, display: 'none', textAlign: 'center', width: '350px'
+        position: 'fixed',
+        top: '18%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: '#2a2a45',
+        padding: '30px 40px',
+        borderRadius: '18px',
+        boxShadow: '0 12px 36px rgba(124, 86, 255, 0.7)',
+        zIndex: 3100,
+        color: '#e0d9ff',
+        fontFamily: font,
+        display: 'none',
+        textAlign: 'center',
+        width: '350px',
+        userSelect: 'none',
     });
 
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
     Object.assign(closeBtn.style, {
-        position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '1.5rem', color: '#ccc', cursor: 'pointer'
+        position: 'absolute',
+        top: '12px',
+        right: '16px',
+        background: 'transparent',
+        border: 'none',
+        fontSize: '1.5rem',
+        color: '#ccc',
+        cursor: 'pointer',
+        userSelect: 'none',
+        transition: 'color 0.3s ease',
     });
     closeBtn.onmouseenter = () => closeBtn.style.color = '#ff6b81';
     closeBtn.onmouseleave = () => closeBtn.style.color = '#ccc';
-    closeBtn.onclick = () => modal.style.display = 'none';
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
     modal.appendChild(closeBtn);
 
-    const form = document.createElement('div');
-    form.style = 'display:flex;flex-direction:column;gap:18px;align-items:center;';
+    const formWrapper = document.createElement('div');
+    formWrapper.style = 'display:flex;flex-direction:column;gap:18px;align-items:center;';
 
-    const packLabel = document.createElement('label');
-    packLabel.textContent = 'Select Pack:';
-    form.appendChild(packLabel);
+    const labelPack = document.createElement('label');
+    labelPack.textContent = 'Select Pack:';
+    labelPack.style = 'font-size:1.1em; font-weight:600;';
 
     const packSelect = document.createElement('select');
     Object.assign(packSelect.style, {
-        padding: '12px 15px', borderRadius: '12px', backgroundColor: '#1b1b2f',
-        color: '#e0d9ff', border: '1px solid #7c56ff', width: '100%', cursor: 'pointer'
+        padding: '12px 15px',
+        borderRadius: '12px',
+        fontSize: '1em',
+        backgroundColor: '#1b1b2f',
+        color: '#e0d9ff',
+        border: '1px solid #7c56ff',
+        outline: 'none',
+        width: '100%',
+        cursor: 'pointer',
+        transition: 'border-color 0.3s ease',
+    });
+    packSelect.onfocus = () => packSelect.style.borderColor = '#b497ff';
+    packSelect.onblur = () => packSelect.style.borderColor = '#7c56ff';
+    Object.keys(blacket.packs).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        packSelect.appendChild(opt);
     });
 
-    // Only packs in the market
-    Object.keys(blacket.packs)
-        .filter(p => blacket.packs[p].isMarket || (Array.isArray(blacket.market) && blacket.market.includes(p)))
-        .forEach(p => {
-            const o = document.createElement('option');
-            o.value = p;
-            o.textContent = p;
-            packSelect.appendChild(o);
-        });
-    form.appendChild(packSelect);
+    const labelAmount = document.createElement('label');
+    labelAmount.textContent = 'Number of Packs:';
+    labelAmount.style = 'font-size:1.1em; font-weight:600;';
 
-    const tokensLabel = document.createElement('label');
-    tokensLabel.textContent = 'Tokens to Spend:';
-    form.appendChild(tokensLabel);
-
-    const tokenInput = document.createElement('input');
-    tokenInput.type = 'number'; tokenInput.min = '1'; tokenInput.value = '25'; tokenInput.step = '25';
-    Object.assign(tokenInput.style, {
-        padding: '12px 15px', borderRadius: '12px', backgroundColor: '#1b1b2f',
-        color: '#e0d9ff', border: '1px solid #7c56ff', width: '100%', textAlign: 'center'
+    const countInput = document.createElement('input');
+    countInput.type = 'number';
+    countInput.min = '1';
+    countInput.value = '1';
+    Object.assign(countInput.style, {
+        padding: '12px 15px',
+        borderRadius: '12px',
+        fontSize: '1em',
+        width: '100%',
+        backgroundColor: '#1b1b2f',
+        color: '#e0d9ff',
+        border: '1px solid #7c56ff',
+        textAlign: 'center',
+        outline: 'none',
+        transition: 'border-color 0.3s ease',
     });
-    form.appendChild(tokenInput);
-
-    const delayLabel = document.createElement('label');
-    delayLabel.textContent = 'Delay (ms) Between Opens:';
-    form.appendChild(delayLabel);
-
-    const delayInput = document.createElement('input');
-    delayInput.type = 'number'; delayInput.min = '50'; delayInput.value = '500';
-    Object.assign(delayInput.style, {
-        padding: '12px 15px', borderRadius: '12px', backgroundColor: '#1b1b2f',
-        color: '#e0d9ff', border: '1px solid #7c56ff', width: '100%', textAlign: 'center'
-    });
-    form.appendChild(delayInput);
-
-    const packInfo = document.createElement('div');
-    packInfo.style = 'color:#bb86fc;font-size:0.95em;margin-top:-10px;';
-    form.appendChild(packInfo);
-
-    tokenInput.oninput = () => {
-        const spend = parseInt(tokenInput.value, 10) || 0;
-        const pack = packSelect.value;
-        const price = blacket.packs[pack].price;
-        const max = blacket.user.tokens;
-        const count = Math.floor(spend / price);
-        const left = max - (count * price);
-        packInfo.textContent = count <= 0 || spend > max
-            ? '⚠️ Not enough tokens!'
-            : `🧮 You’ll open ${count} pack(s) | 💰 Left after: ${left} tokens`;
-    };
-    packSelect.onchange = () => tokenInput.oninput();
+    countInput.onfocus = () => countInput.style.borderColor = '#b497ff';
+    countInput.onblur = () => countInput.style.borderColor = '#7c56ff';
 
     const confirmBtn = document.createElement('button');
     confirmBtn.textContent = 'Open Packs';
     Object.assign(confirmBtn.style, {
-        padding: '14px 0', width: '100%', fontSize: '1.1em', fontWeight: '700', backgroundColor: '#7c56ff',
-        border: 'none', borderRadius: '14px', cursor: 'pointer', boxShadow: '0 5px 18px rgba(124,86,255,0.6)'
+        padding: '14px 0',
+        width: '100%',
+        fontSize: '1.1em',
+        fontWeight: '700',
+        color: '#fff',
+        backgroundColor: '#7c56ff',
+        border: 'none',
+        borderRadius: '14px',
+        cursor: 'pointer',
+        boxShadow: '0 5px 18px rgba(124, 86, 255, 0.6)',
+        fontFamily: font,
+        userSelect: 'none',
+        transition: 'background-color 0.3s ease',
     });
     confirmBtn.onmouseenter = () => confirmBtn.style.backgroundColor = '#936dff';
     confirmBtn.onmouseleave = () => confirmBtn.style.backgroundColor = '#7c56ff';
     confirmBtn.onclick = () => {
         const pack = packSelect.value;
-        const spend = parseInt(tokenInput.value, 10);
+        const amt = parseInt(countInput.value);
         const price = blacket.packs[pack].price;
-        const delay = parseInt(delayInput.value, 10);
-        const maxSpend = blacket.user.tokens;
-        if (isNaN(spend) || spend < price) return alert(`❌ You need at least ${price} tokens to open one ${pack}.`);
-        if (spend > maxSpend) return alert(`❌ You only have ${maxSpend} tokens.`);
-        const count = Math.floor(spend / price);
-        if (count === 0) return alert("❌ Not enough tokens to open any pack.");
+        if (!pack || !(pack in blacket.packs)) {
+            alert('Please select a valid pack.');
+            return;
+        }
+        if (!amt || amt < 1) {
+            alert('Please enter a valid amount.');
+            return;
+        }
+        const maxAffordable = Math.floor(blacket.user.tokens / price);
+        if (amt > maxAffordable) {
+            alert(`You can only afford ${maxAffordable} packs.`);
+            return;
+        }
         modal.style.display = 'none';
-        openPacksSequential(pack, count, delay);
+        openPacksSequential(pack, amt);
     };
-    form.appendChild(confirmBtn);
 
-    modal.appendChild(form);
+    formWrapper.append(labelPack, packSelect, labelAmount, countInput, confirmBtn);
+    modal.appendChild(formWrapper);
     document.body.appendChild(modal);
 
+    // Main "Open Packs" button - modern gradient pill style
     const openBtn = document.createElement('button');
     openBtn.textContent = '🎉 Open Packs';
     Object.assign(openBtn.style, {
-        position: 'fixed', top: '60px', right: '20px', padding: '12px 28px', fontSize: '1.15rem',
-        fontWeight: '700', background: 'linear-gradient(45deg,#7c56ff,#b497ff)', color: '#fff',
-        border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(124,86,255,0.6)',
-        zIndex: 2200, fontFamily: font
+        position: 'fixed',
+        top: '60px',
+        right: '20px',
+        padding: '12px 28px',
+        fontSize: '1.15rem',
+        fontWeight: '700',
+        background: 'linear-gradient(45deg, #7c56ff, #b497ff)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '30px',
+        cursor: 'pointer',
+        boxShadow: '0 6px 20px rgba(124, 86, 255, 0.6)',
+        zIndex: 2200,
+        fontFamily: font,
+        userSelect: 'none',
+        transition: 'background 0.3s ease',
     });
-    openBtn.onmouseenter = () => openBtn.style.background = 'linear-gradient(45deg,#936dff,#d0bcff)';
-    openBtn.onmouseleave = () => openBtn.style.background = 'linear-gradient(45deg,#7c56ff,#b497ff)';
-    openBtn.onclick = () => modal.style.display = 'block';
+    openBtn.onmouseenter = () => openBtn.style.background = 'linear-gradient(45deg, #936dff, #d0bcff)';
+    openBtn.onmouseleave = () => openBtn.style.background = 'linear-gradient(45deg, #7c56ff, #b497ff)';
+    openBtn.onclick = () => {
+        modal.style.display = 'block';
+    };
     document.body.appendChild(openBtn);
+
 })();
+
