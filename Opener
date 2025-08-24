@@ -1,12 +1,3 @@
-// ==UserScript==
-// @name         Blacket Pack Opener - Modern Look
-// @namespace    http://tampermonkey.net/
-// @version      1.9
-// @description  Opens Blacket packs with a sleek modern UI and live display
-// @author       ChatGPT
-// @match        *://*.blacket.org/*
-// @grant        none
-// ==/UserScript==
 
 (function () {
     'use strict';
