@@ -1,350 +1,214 @@
-
-(function () {
-    'use strict';
-
+$(function () {
     let resultMap = {};
     let isOpening = false;
+    const titanFont = `'Titan One', cursive`;
 
-    const font = `'Roboto Mono', monospace`;
-    const fontLink = document.createElement('link');
-    fontLink.href = 'https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap';
-    fontLink.rel = 'stylesheet';
-    document.head.appendChild(fontLink);
+    // Load Titan One font
+    const fontLink = $('<link href="https://fonts.googleapis.com/css2?family=Titan+One&display=swap" rel="stylesheet">');
+    $('head').append(fontLink);
 
-    // Result panel - modern clean style
-    const resultPanel = document.createElement('section');
-    resultPanel.id = 'blookTally';
-    Object.assign(resultPanel.style, {
-        display: 'none',
-        position: 'fixed',
-        top: '90px',
-        right: '-140px',
-        width: '320px',
-        maxHeight: '420px',
-        backgroundColor: '#1e1e2f',
-        color: '#d8d8f2',
-        padding: '15px',
-        border: '2px solid #7c56ff',
-        borderRadius: '16px',
-        boxShadow: '0 8px 24px rgba(124, 86, 255, 0.4)',
-        zIndex: 2100,
-        overflowY: 'auto',
-        transition: 'right 0.35s ease',
-        fontFamily: font,
-        fontSize: '1em',
-        userSelect: 'none',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#7c56ff transparent',
-    });
-    document.body.appendChild(resultPanel);
+    // Result Panel (right side, tall rectangle)
+    const resultPanel = $(`
+        <section id="blookTally" style="
+            display:none;
+            position:fixed;
+            top:50px;
+            right:20px;
+            width:250px;
+            height:80vh;
+            overflow-y:auto;
+            background:#220000;
+            color:#fff;
+            padding:10px;
+            border:2px solid #880000;
+            border-radius:10px;
+            z-index:2000;
+            font-family:${titanFont};
+        "></section>
+    `);
+    $('body').append(resultPanel);
 
-    // Custom scrollbar for WebKit browsers
-    const style = document.createElement('style');
-    style.textContent = `
-      #blookTally::-webkit-scrollbar {
-        width: 8px;
-      }
-      #blookTally::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      #blookTally::-webkit-scrollbar-thumb {
-        background-color: #7c56ff;
-        border-radius: 8px;
-      }
-    `;
-    document.head.appendChild(style);
-
-    function appendBlook(name) {
+    function appendBlookResult(name) {
         const info = blacket.blooks[name] || {};
         const img = info.image || '/content/blooks/Error.webp';
         const rarity = info.rarity || 'Unknown';
-        const color = blacket.rarities[rarity]?.color || '#7c56ff';
+        const color = blacket.rarities[rarity]?.color || '#ff4444';
 
         if (!resultMap[name]) {
-            const item = document.createElement('div');
-            item.style = `
-                display:flex;
-                align-items:center;
-                margin:8px 0;
-                border-left:5px solid ${color};
-                padding:10px 12px;
-                background-color: #2a2a45;
-                border-radius: 10px;
-                box-shadow: 0 2px 8px rgba(124, 86, 255, 0.15);
-                transition: background-color 0.3s ease;
-                cursor: default;
-            `;
-            item.innerHTML = `
-                <img src="${img}" alt="${name}" style="width:30px; height:30px; margin-right:12px; border-radius:6px; box-shadow: 0 0 5px ${color};">
-                <span style="color:${color}; font-weight: 700; font-size: 1.05em;">${name} (<span class="blook-count">1</span>)</span>
-            `;
-            resultMap[name] = { count: 1, element: item };
-            resultPanel.appendChild(item);
+            const item = $(`
+                <div id="entry-${name.replace(/\s+/g, '_')}" data-rarity="${rarity}" style="display:flex;align-items:center;margin:10px 0;">
+                    <img src="${img}" alt="${name}" style="width:24px;height:24px;object-fit:contain;margin-right:10px;">
+                    <span style="color:${color};font-weight:bold;font-size:1.1em;font-family:${titanFont};">${name} (<span class="blook-count">1</span>)</span>
+                </div>
+            `);
+            resultMap[name] = { count: 1, rarity, element: item };
         } else {
             resultMap[name].count++;
-            resultMap[name].element.querySelector('.blook-count').textContent = resultMap[name].count;
-            // subtle pulse effect on count increment
-            const span = resultMap[name].element.querySelector('.blook-count');
-            span.style.transition = 'transform 0.15s ease';
-            span.style.transform = 'scale(1.3)';
-            setTimeout(() => { span.style.transform = 'scale(1)'; }, 150);
+            resultMap[name].element.find('.blook-count').text(resultMap[name].count);
         }
-        resultPanel.scrollTop = resultPanel.scrollHeight;
+
+        sortResultsByRarity();
     }
 
-    function showSummary(total) {
-        const summary = document.createElement('div');
-        summary.style = 'margin-top: 15px; font-weight: 700; font-size: 1.25em; text-align: center; color: #bb86fc;';
-        summary.textContent = `Total Packs Opened: ${total}`;
-        resultPanel.appendChild(summary);
+    function sortResultsByRarity() {
+        const panel = $('#blookTally');
+        const entries = Object.values(resultMap);
+        const rarityOrder = Object.keys(blacket.rarities);
 
-        const repeatBtn = document.createElement('button');
-        repeatBtn.textContent = 'Open More Packs';
-        Object.assign(repeatBtn.style, {
-            marginTop: '18px',
-            width: '100%',
-            padding: '12px 0',
-            fontSize: '1em',
-            fontWeight: '700',
-            color: '#fff',
-            backgroundColor: '#7c56ff',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(124, 86, 255, 0.5)',
-            transition: 'background-color 0.3s ease',
-            fontFamily: font,
-            userSelect: 'none',
+        entries.sort((a, b) => {
+            const aIndex = rarityOrder.indexOf(a.rarity) === -1 ? 999 : rarityOrder.indexOf(a.rarity);
+            const bIndex = rarityOrder.indexOf(b.rarity) === -1 ? 999 : rarityOrder.indexOf(b.rarity);
+            return aIndex - bIndex;
         });
-        repeatBtn.onmouseenter = () => repeatBtn.style.backgroundColor = '#936dff';
-        repeatBtn.onmouseleave = () => repeatBtn.style.backgroundColor = '#7c56ff';
-        repeatBtn.onclick = () => {
-            modal.style.display = 'block';
-            resultPanel.style.right = '-140px';
-            resultPanel.innerHTML = '';
-            resultMap = {};
-        };
-        resultPanel.appendChild(repeatBtn);
+
+        panel.children().not('.summary, .repeat-btn').remove();
+        for (const entry of entries) {
+            panel.append(entry.element);
+        }
     }
 
-    async function openPack(pack) {
-        return new Promise((resolve) => {
-            blacket.requests.post('/worker3/open', { pack }, (data) => {
-                if (data.error) return resolve(null);
-                blacket.user.tokens -= blacket.packs[pack].price;
-                blacket.user.blooks[data.blook] = (blacket.user.blooks[data.blook] || 0) + 1;
-                resolve(data.blook);
-            });
+    function displaySummary(log, total) {
+        $('#blookTally').find('.summary, .repeat-btn').remove();
+        const summary = $(`<div class="summary" style="margin-top:12px;font-size:1.1em;font-weight:bold;font-family:${titanFont};">${total} packs opened.</div>`);
+        const repeatBtn = $(`<button class="repeat-btn" style="margin-top:10px;padding:10px 16px;font-size:1em;background:#880000;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:${titanFont};">Open More</button>`);
+        repeatBtn.on('click', () => {
+            $('#packModal').fadeIn();
+            resultPanel.hide();
         });
+        $('#blookTally').append(summary, repeatBtn);
     }
 
-    async function openPacksSequential(pack, count) {
+    async function beginOpening(pack, count, cost) {
         if (isOpening) return;
         isOpening = true;
         resultMap = {};
-        resultPanel.innerHTML = '';
-        resultPanel.style.display = 'block';
+        $('#blookTally').empty().show();
 
+        const log = {};
+        const originalOpenPack = blacket.openPack;
         let opened = 0;
-        while (opened < count) {
-            try {
-                const attainedBlook = await openPack(pack);
-                if (!attainedBlook) {
-                    console.warn('Error opening pack.');
-                    await new Promise(r => setTimeout(r, 10));
-                    continue;
+
+        blacket.openPack = (p) => new Promise(resolve => {
+            blacket.startLoading();
+            blacket.requests.post("/worker3/open", { pack: p }, (resp) => {
+                blacket.stopLoading();
+                if (resp.error) {
+                    blacket.createToast({
+                        title: "Error",
+                        message: resp.reason,
+                        icon: "/content/blooks/Error.webp",
+                        time: 5000
+                    });
+                    return resolve(null);
                 }
+                blacket.user.tokens -= blacket.packs[p].price;
+                $("#tokenBalance > div:nth-child(2)").text(blacket.user.tokens.toLocaleString());
+                blacket.user.blooks[resp.blook] = (blacket.user.blooks[resp.blook] || 0) + 1;
+                resolve(resp.blook);
+            });
+        });
 
-                appendBlook(attainedBlook);
-
-                const rarity = blacket.blooks[attainedBlook]?.rarity || 'Unknown';
-                const color = blacket.rarities[rarity]?.color || '#7c56ff';
-                console.log(`%c ${attainedBlook} %c(${opened + 1}/${count})`,
-                    `color:#fff;font-size:1.5em;text-shadow:0 0 .4em rgba(255,255,255,0.5),-.1em -.1em 0 #fff;font-family:Roboto Mono;background:-webkit-linear-gradient(45deg,${color},${color});-webkit-background-clip:text;-moz-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`,
-                    'font-size:.8em;color:#ccc');
-
-                opened++;
-
-                const baseWait = blacket.rarities[rarity]?.wait ?? 50;
-                const waitTime = Math.max(7, baseWait);
-                await new Promise(r => setTimeout(r, waitTime));
-
-            } catch (err) {
-                console.warn("Error opening pack:", err);
-                await new Promise(r => setTimeout(r, 10));
+        for (let i = 0; i < count; i++) {
+            if (blacket.user.tokens < cost) break;
+            const result = await blacket.openPack(pack);
+            if (result) {
+                log[result] = (log[result] || 0) + 1;
+                appendBlookResult(result);
+                const delay = blacket.rarities[blacket.blooks[result]?.rarity]?.wait ?? 50;
+                await new Promise(r => setTimeout(r, delay));
             }
+            opened++;
         }
 
-        showSummary(opened);
-        resultPanel.style.right = '20px';
+        blacket.openPack = originalOpenPack;
+        displaySummary(log, opened);
         isOpening = false;
     }
 
-    // Modal for input - modern card style with close button
-    const modal = document.createElement('div');
-    modal.id = 'packModal';
-    Object.assign(modal.style, {
-        position: 'fixed',
-        top: '18%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: '#2a2a45',
-        padding: '30px 40px',
-        borderRadius: '18px',
-        boxShadow: '0 12px 36px rgba(124, 86, 255, 0.7)',
-        zIndex: 3100,
-        color: '#e0d9ff',
-        fontFamily: font,
-        display: 'none',
-        textAlign: 'center',
-        width: '350px',
-        userSelect: 'none',
+    const packs = Object.keys(blacket?.packs || {}).filter(p => !blacket.packs[p].hidden);
+    const dropdown = $(`<select id="packDropdown" style="margin:10px;font-size:1.2vw;padding:8px;border-radius:8px;background:#660000;color:white;border:1px solid #880000;font-family:${titanFont};"></select>`);
+    packs.forEach(name => dropdown.append(`<option value="${name}">${name}</option>`));
+
+    const switchMode = $(`
+        <div style="margin:10px;font-size:1.2vw;font-family:${titanFont};">
+            <label><input type="radio" name="mode" value="packs" checked> Packs</label>
+            <label style="margin-left:20px;"><input type="radio" name="mode" value="tokens"> Tokens</label>
+        </div>
+    `);
+
+    const qtyInput = $(`<input type="number" value="1" min="1" placeholder="Amount" style="margin:10px;width:140px;font-size:1.2vw;padding:8px;border-radius:8px;font-family:${titanFont};" />`);
+    const confirmBtn = $(`<button style="margin:10px;font-size:1.2vw;padding:8px 16px;border-radius:8px;background:#cc0000;color:white;border:none;font-family:${titanFont};">Open</button>`);
+
+    // Pack Modal (right side, taller, narrower, further right)
+    const dialog = $(`
+        <div id="packModal" style="
+            position:fixed;
+            top:80px;
+            right:50px; 
+            width:220px; 
+            height:500px; 
+            background:#330000;
+            padding:30px;
+            border-radius:16px;
+            z-index:1001;
+            text-align:center;
+            display:none;
+            color:#fff;
+            font-family:${titanFont};
+            overflow-y:auto;
+        "></div>
+    `);
+    dialog.append(dropdown, switchMode, qtyInput, confirmBtn);
+
+    // Open Packs Button (far right)
+    const trigger = $(`
+        <button id="openBtn" style="
+            position:fixed;
+            top:60px;
+            right:20px;
+            padding:12px 24px;
+            font-size:1rem;
+            z-index:1000;
+            background:linear-gradient(135deg, #990000, #cc0000);
+            color:white;
+            border:none;
+            border-radius:12px;
+            cursor:pointer;
+            box-shadow:0 4px 12px rgba(0,0,0,0.2);
+            transition:transform 0.2s ease;
+            font-family:${titanFont};
+        ">Open Packs</button>
+    `);
+
+    trigger.on('mouseenter', () => trigger.css('transform', 'scale(1.05)'));
+    trigger.on('mouseleave', () => trigger.css('transform', 'scale(1)'));
+    trigger.on('click', () => {
+        $('#packModal').fadeIn();
+        trigger.fadeOut();
     });
 
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
-    Object.assign(closeBtn.style, {
-        position: 'absolute',
-        top: '12px',
-        right: '16px',
-        background: 'transparent',
-        border: 'none',
-        fontSize: '1.5rem',
-        color: '#ccc',
-        cursor: 'pointer',
-        userSelect: 'none',
-        transition: 'color 0.3s ease',
-    });
-    closeBtn.onmouseenter = () => closeBtn.style.color = '#ff6b81';
-    closeBtn.onmouseleave = () => closeBtn.style.color = '#ccc';
-    closeBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
-    modal.appendChild(closeBtn);
+    confirmBtn.on('click', () => {
+        if (isOpening) return;
+        const pack = $('#packDropdown').val();
+        const method = $('input[name="mode"]:checked').val();
+        let amount = parseInt(qtyInput.val(), 10);
 
-    const formWrapper = document.createElement('div');
-    formWrapper.style = 'display:flex;flex-direction:column;gap:18px;align-items:center;';
+        if (!pack || !blacket.packs[pack]) return alert("Choose a valid pack.");
+        if (!amount || amount <= 0) return alert("Enter a positive amount.");
 
-    const labelPack = document.createElement('label');
-    labelPack.textContent = 'Select Pack:';
-    labelPack.style = 'font-size:1.1em; font-weight:600;';
-
-    const packSelect = document.createElement('select');
-    Object.assign(packSelect.style, {
-        padding: '12px 15px',
-        borderRadius: '12px',
-        fontSize: '1em',
-        backgroundColor: '#1b1b2f',
-        color: '#e0d9ff',
-        border: '1px solid #7c56ff',
-        outline: 'none',
-        width: '100%',
-        cursor: 'pointer',
-        transition: 'border-color 0.3s ease',
-    });
-    packSelect.onfocus = () => packSelect.style.borderColor = '#b497ff';
-    packSelect.onblur = () => packSelect.style.borderColor = '#7c56ff';
-    Object.keys(blacket.packs).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        packSelect.appendChild(opt);
-    });
-
-    const labelAmount = document.createElement('label');
-    labelAmount.textContent = 'Number of Packs:';
-    labelAmount.style = 'font-size:1.1em; font-weight:600;';
-
-    const countInput = document.createElement('input');
-    countInput.type = 'number';
-    countInput.min = '1';
-    countInput.value = '1';
-    Object.assign(countInput.style, {
-        padding: '12px 15px',
-        borderRadius: '12px',
-        fontSize: '1em',
-        width: '100%',
-        backgroundColor: '#1b1b2f',
-        color: '#e0d9ff',
-        border: '1px solid #7c56ff',
-        textAlign: 'center',
-        outline: 'none',
-        transition: 'border-color 0.3s ease',
-    });
-    countInput.onfocus = () => countInput.style.borderColor = '#b497ff';
-    countInput.onblur = () => countInput.style.borderColor = '#7c56ff';
-
-    const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Open Packs';
-    Object.assign(confirmBtn.style, {
-        padding: '14px 0',
-        width: '100%',
-        fontSize: '1.1em',
-        fontWeight: '700',
-        color: '#fff',
-        backgroundColor: '#7c56ff',
-        border: 'none',
-        borderRadius: '14px',
-        cursor: 'pointer',
-        boxShadow: '0 5px 18px rgba(124, 86, 255, 0.6)',
-        fontFamily: font,
-        userSelect: 'none',
-        transition: 'background-color 0.3s ease',
-    });
-    confirmBtn.onmouseenter = () => confirmBtn.style.backgroundColor = '#936dff';
-    confirmBtn.onmouseleave = () => confirmBtn.style.backgroundColor = '#7c56ff';
-    confirmBtn.onclick = () => {
-        const pack = packSelect.value;
-        const amt = parseInt(countInput.value);
         const price = blacket.packs[pack].price;
-        if (!pack || !(pack in blacket.packs)) {
-            alert('Please select a valid pack.');
-            return;
+        if (method === 'tokens') {
+            amount = Math.floor(amount / price);
+            if (amount === 0) return alert("Not enough tokens for one pack.");
         }
-        if (!amt || amt < 1) {
-            alert('Please enter a valid amount.');
-            return;
-        }
-        const maxAffordable = Math.floor(blacket.user.tokens / price);
-        if (amt > maxAffordable) {
-            alert(`You can only afford ${maxAffordable} packs.`);
-            return;
-        }
-        modal.style.display = 'none';
-        openPacksSequential(pack, amt);
-    };
 
-    formWrapper.append(labelPack, packSelect, labelAmount, countInput, confirmBtn);
-    modal.appendChild(formWrapper);
-    document.body.appendChild(modal);
+        amount = Math.min(amount, Math.floor(blacket.user.tokens / price));
+        if (amount === 0) return alert("Insufficient tokens.");
 
-    // Main "Open Packs" button - modern gradient pill style
-    const openBtn = document.createElement('button');
-    openBtn.textContent = '🎉 Open Packs';
-    Object.assign(openBtn.style, {
-        position: 'fixed',
-        top: '60px',
-        right: '20px',
-        padding: '12px 28px',
-        fontSize: '1.15rem',
-        fontWeight: '700',
-        background: 'linear-gradient(45deg, #7c56ff, #b497ff)',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '30px',
-        cursor: 'pointer',
-        boxShadow: '0 6px 20px rgba(124, 86, 255, 0.6)',
-        zIndex: 2200,
-        fontFamily: font,
-        userSelect: 'none',
-        transition: 'background 0.3s ease',
+        $('#packModal').fadeOut();
+        beginOpening(pack, amount, price);
     });
-    openBtn.onmouseenter = () => openBtn.style.background = 'linear-gradient(45deg, #936dff, #d0bcff)';
-    openBtn.onmouseleave = () => openBtn.style.background = 'linear-gradient(45deg, #7c56ff, #b497ff)';
-    openBtn.onclick = () => {
-        modal.style.display = 'block';
-    };
-    document.body.appendChild(openBtn);
 
-})();
+    $('body').append(trigger, dialog);
+});
 
