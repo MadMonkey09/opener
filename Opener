@@ -7,7 +7,7 @@
     let isOpening = false;
     let resultMap = {};
 
-    // Floating toggle button
+    // Floting button
     const toggleBtn = document.createElement('div');
     Object.assign(toggleBtn.style, {
         position: 'fixed',
