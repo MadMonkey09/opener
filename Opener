@@ -1,214 +1,140 @@
-$(function () {
+
+(function(){
+    'use strict';
+
+    if(window.__rightSideOpenerLoaded) return;
+    window.__rightSideOpenerLoaded = true;
+
     let resultMap = {};
     let isOpening = false;
-    const titanFont = `'Titan One', cursive`;
 
-    // Load Titan One font
-    const fontLink = $('<link href="https://fonts.googleapis.com/css2?family=Titan+One&display=swap" rel="stylesheet">');
-    $('head').append(fontLink);
+    // Font
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap';
+    document.head.appendChild(fontLink);
+    const font = `'Orbitron', sans-serif`;
 
-    // Result Panel (right side, tall rectangle)
-    const resultPanel = $(`
-        <section id="blookTally" style="
-            display:none;
-            position:fixed;
-            top:50px;
-            right:20px;
-            width:250px;
-            height:80vh;
-            overflow-y:auto;
-            background:#220000;
-            color:#fff;
-            padding:10px;
-            border:2px solid #880000;
-            border-radius:10px;
-            z-index:2000;
-            font-family:${titanFont};
-        "></section>
-    `);
-    $('body').append(resultPanel);
+    // Right panel
+    const panel = document.createElement('div');
+    Object.assign(panel.style,{
+        position:'fixed', top:'50px', right:'20px', width:'220px', height:'400px',
+        background:'rgba(10,10,30,0.9)', border:'2px solid #33ffff', borderRadius:'12px',
+        display:'flex', flexDirection:'column', alignItems:'center', padding:'10px', gap:'6px',
+        boxShadow:'0 0 15px #33ffff', zIndex:3000, fontFamily:font
+    });
+    document.body.appendChild(panel);
 
-    function appendBlookResult(name) {
+    // Token bar
+    const tokenBar = document.createElement('div');
+    tokenBar.textContent=`Tokens: ${blacket.user.tokens}`;
+    Object.assign(tokenBar.style,{color:'#33ffff', fontWeight:'700', fontSize:'0.9rem'});
+    panel.appendChild(tokenBar);
+
+    // Pack selector
+    const packSelect = document.createElement('select');
+    Object.keys(blacket.packs).forEach(p=>{
+        const opt = document.createElement('option'); opt.value=p; opt.textContent=p; packSelect.appendChild(opt);
+    });
+    Object.assign(packSelect.style,{
+        width:'90%', padding:'6px', borderRadius:'8px', border:'2px solid #33ffff', background:'rgba(0,0,0,0.2)', color:'#33ffff'
+    });
+    panel.appendChild(packSelect);
+
+    // Amount input
+    const countInput = document.createElement('input');
+    countInput.type='number'; countInput.min=1; countInput.value=1;
+    Object.assign(countInput.style,{
+        width:'50%', padding:'4px', borderRadius:'8px', border:'2px solid #33ffff', background:'rgba(0,0,0,0.2)', color:'#33ffff', textAlign:'center'
+    });
+    panel.appendChild(countInput);
+
+    // Open button
+    const openBtn = document.createElement('button');
+    openBtn.textContent='▶';
+    Object.assign(openBtn.style,{
+        marginTop:'auto', width:'40px', height:'40px', borderRadius:'50%', border:'2px solid #33ffff',
+        background:'rgba(0,0,0,0.3)', color:'#33ffff', cursor:'pointer', fontWeight:'700',
+        fontSize:'1.2rem', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 10px #33ffff'
+    });
+    openBtn.onmouseenter=()=>openBtn.style.boxShadow='0 0 20px #33ffff';
+    openBtn.onmouseleave=()=>openBtn.style.boxShadow='0 0 10px #33ffff';
+    panel.appendChild(openBtn);
+
+    // Blook stack (vertical scroll)
+    const blookStack = document.createElement('div');
+    Object.assign(blookStack.style,{
+        marginTop:'6px', flexGrow:1, width:'100%', display:'flex', flexDirection:'column-reverse',
+        overflowY:'auto', gap:'4px'
+    });
+    panel.appendChild(blookStack);
+
+    // Append blook card
+    function addBlook(name){
         const info = blacket.blooks[name] || {};
+        const rarity = info.rarity || 'Common';
+        const color = blacket.rarities[rarity]?.color || '#33ffff';
         const img = info.image || '/content/blooks/Error.webp';
-        const rarity = info.rarity || 'Unknown';
-        const color = blacket.rarities[rarity]?.color || '#ff4444';
 
-        if (!resultMap[name]) {
-            const item = $(`
-                <div id="entry-${name.replace(/\s+/g, '_')}" data-rarity="${rarity}" style="display:flex;align-items:center;margin:10px 0;">
-                    <img src="${img}" alt="${name}" style="width:24px;height:24px;object-fit:contain;margin-right:10px;">
-                    <span style="color:${color};font-weight:bold;font-size:1.1em;font-family:${titanFont};">${name} (<span class="blook-count">1</span>)</span>
-                </div>
-            `);
-            resultMap[name] = { count: 1, rarity, element: item };
+        if(!resultMap[name]){
+            const card = document.createElement('div');
+            Object.assign(card.style,{
+                width:'90%', height:'40px', border:`2px solid ${color}`, borderRadius:'6px',
+                display:'flex', alignItems:'center', gap:'6px', background:'rgba(0,0,0,0.25)',
+                opacity:0, transform:'translateX(40px)', transition:'0.3s'
+            });
+            card.innerHTML=`<img src="${img}" style="width:32px;height:32px;border-radius:4px;box-shadow:0 0 6px ${color}"> <span style="color:${color}; font-weight:700;">${name}</span>`;
+            resultMap[name]={count:1, element:card};
+            blookStack.appendChild(card);
+            requestAnimationFrame(()=>{ card.style.opacity=1; card.style.transform='translateX(0)'; });
         } else {
             resultMap[name].count++;
-            resultMap[name].element.find('.blook-count').text(resultMap[name].count);
+            const span = resultMap[name].element.querySelector('span');
+            span.textContent=`${name} (${resultMap[name].count})`;
+            resultMap[name].element.animate([
+                {boxShadow:`0 0 6px ${color}`},
+                {boxShadow:`0 0 14px ${color}`}
+            ],{duration:200, iterations:1});
         }
-
-        sortResultsByRarity();
+        blookStack.scrollTop=blookStack.scrollHeight;
     }
 
-    function sortResultsByRarity() {
-        const panel = $('#blookTally');
-        const entries = Object.values(resultMap);
-        const rarityOrder = Object.keys(blacket.rarities);
-
-        entries.sort((a, b) => {
-            const aIndex = rarityOrder.indexOf(a.rarity) === -1 ? 999 : rarityOrder.indexOf(a.rarity);
-            const bIndex = rarityOrder.indexOf(b.rarity) === -1 ? 999 : rarityOrder.indexOf(b.rarity);
-            return aIndex - bIndex;
-        });
-
-        panel.children().not('.summary, .repeat-btn').remove();
-        for (const entry of entries) {
-            panel.append(entry.element);
-        }
-    }
-
-    function displaySummary(log, total) {
-        $('#blookTally').find('.summary, .repeat-btn').remove();
-        const summary = $(`<div class="summary" style="margin-top:12px;font-size:1.1em;font-weight:bold;font-family:${titanFont};">${total} packs opened.</div>`);
-        const repeatBtn = $(`<button class="repeat-btn" style="margin-top:10px;padding:10px 16px;font-size:1em;background:#880000;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:${titanFont};">Open More</button>`);
-        repeatBtn.on('click', () => {
-            $('#packModal').fadeIn();
-            resultPanel.hide();
-        });
-        $('#blookTally').append(summary, repeatBtn);
-    }
-
-    async function beginOpening(pack, count, cost) {
-        if (isOpening) return;
-        isOpening = true;
-        resultMap = {};
-        $('#blookTally').empty().show();
-
-        const log = {};
-        const originalOpenPack = blacket.openPack;
-        let opened = 0;
-
-        blacket.openPack = (p) => new Promise(resolve => {
-            blacket.startLoading();
-            blacket.requests.post("/worker3/open", { pack: p }, (resp) => {
-                blacket.stopLoading();
-                if (resp.error) {
-                    blacket.createToast({
-                        title: "Error",
-                        message: resp.reason,
-                        icon: "/content/blooks/Error.webp",
-                        time: 5000
-                    });
-                    return resolve(null);
-                }
-                blacket.user.tokens -= blacket.packs[p].price;
-                $("#tokenBalance > div:nth-child(2)").text(blacket.user.tokens.toLocaleString());
-                blacket.user.blooks[resp.blook] = (blacket.user.blooks[resp.blook] || 0) + 1;
-                resolve(resp.blook);
+    async function openPack(pack){
+        return new Promise(resolve=>{
+            blacket.requests.post('/worker3/open',{pack},data=>{
+                if(data.error) return resolve(null);
+                blacket.user.tokens -= blacket.packs[pack].price;
+                tokenBar.textContent=`Tokens: ${blacket.user.tokens}`;
+                blacket.user.blooks[data.blook]=(blacket.user.blooks[data.blook]||0)+1;
+                resolve(data.blook);
             });
         });
-
-        for (let i = 0; i < count; i++) {
-            if (blacket.user.tokens < cost) break;
-            const result = await blacket.openPack(pack);
-            if (result) {
-                log[result] = (log[result] || 0) + 1;
-                appendBlookResult(result);
-                const delay = blacket.rarities[blacket.blooks[result]?.rarity]?.wait ?? 50;
-                await new Promise(r => setTimeout(r, delay));
-            }
-            opened++;
-        }
-
-        blacket.openPack = originalOpenPack;
-        displaySummary(log, opened);
-        isOpening = false;
     }
 
-    const packs = Object.keys(blacket?.packs || {}).filter(p => !blacket.packs[p].hidden);
-    const dropdown = $(`<select id="packDropdown" style="margin:10px;font-size:1.2vw;padding:8px;border-radius:8px;background:#660000;color:white;border:1px solid #880000;font-family:${titanFont};"></select>`);
-    packs.forEach(name => dropdown.append(`<option value="${name}">${name}</option>`));
-
-    const switchMode = $(`
-        <div style="margin:10px;font-size:1.2vw;font-family:${titanFont};">
-            <label><input type="radio" name="mode" value="packs" checked> Packs</label>
-            <label style="margin-left:20px;"><input type="radio" name="mode" value="tokens"> Tokens</label>
-        </div>
-    `);
-
-    const qtyInput = $(`<input type="number" value="1" min="1" placeholder="Amount" style="margin:10px;width:140px;font-size:1.2vw;padding:8px;border-radius:8px;font-family:${titanFont};" />`);
-    const confirmBtn = $(`<button style="margin:10px;font-size:1.2vw;padding:8px 16px;border-radius:8px;background:#cc0000;color:white;border:none;font-family:${titanFont};">Open</button>`);
-
-    // Pack Modal (right side, taller, narrower, further right)
-    const dialog = $(`
-        <div id="packModal" style="
-            position:fixed;
-            top:80px;
-            right:50px; 
-            width:220px; 
-            height:500px; 
-            background:#330000;
-            padding:30px;
-            border-radius:16px;
-            z-index:1001;
-            text-align:center;
-            display:none;
-            color:#fff;
-            font-family:${titanFont};
-            overflow-y:auto;
-        "></div>
-    `);
-    dialog.append(dropdown, switchMode, qtyInput, confirmBtn);
-
-    // Open Packs Button (far right)
-    const trigger = $(`
-        <button id="openBtn" style="
-            position:fixed;
-            top:60px;
-            right:20px;
-            padding:12px 24px;
-            font-size:1rem;
-            z-index:1000;
-            background:linear-gradient(135deg, #990000, #cc0000);
-            color:white;
-            border:none;
-            border-radius:12px;
-            cursor:pointer;
-            box-shadow:0 4px 12px rgba(0,0,0,0.2);
-            transition:transform 0.2s ease;
-            font-family:${titanFont};
-        ">Open Packs</button>
-    `);
-
-    trigger.on('mouseenter', () => trigger.css('transform', 'scale(1.05)'));
-    trigger.on('mouseleave', () => trigger.css('transform', 'scale(1)'));
-    trigger.on('click', () => {
-        $('#packModal').fadeIn();
-        trigger.fadeOut();
-    });
-
-    confirmBtn.on('click', () => {
-        if (isOpening) return;
-        const pack = $('#packDropdown').val();
-        const method = $('input[name="mode"]:checked').val();
-        let amount = parseInt(qtyInput.val(), 10);
-
-        if (!pack || !blacket.packs[pack]) return alert("Choose a valid pack.");
-        if (!amount || amount <= 0) return alert("Enter a positive amount.");
-
-        const price = blacket.packs[pack].price;
-        if (method === 'tokens') {
-            amount = Math.floor(amount / price);
-            if (amount === 0) return alert("Not enough tokens for one pack.");
+    async function openSequential(pack,count){
+        if(isOpening) return;
+        isOpening=true;
+        resultMap={};
+        blookStack.innerHTML='';
+        let opened=0;
+        while(opened<count){
+            const blook = await openPack(pack);
+            if(!blook){ await new Promise(r=>setTimeout(r,50)); continue; }
+            addBlook(blook);
+            opened++;
+            const rarity = blacket.blooks[blook]?.rarity || 'Common';
+            const wait = blacket.rarities[rarity]?.wait || 50;
+            await new Promise(r=>setTimeout(r,Math.max(7,wait)));
         }
+        isOpening=false;
+    }
 
-        amount = Math.min(amount, Math.floor(blacket.user.tokens / price));
-        if (amount === 0) return alert("Insufficient tokens.");
+    openBtn.onclick=()=>{
+        const pack=packSelect.value;
+        const amt=parseInt(countInput.value);
+        const max=Math.floor(blacket.user.tokens/blacket.packs[pack].price);
+        if(!pack||amt<1||amt>max){ alert(`Invalid input (Max: ${max})`); return; }
+        openSequential(pack,amt);
+    };
 
-        $('#packModal').fadeOut();
-        beginOpening(pack, amount, price);
-    });
-
-    $('body').append(trigger, dialog);
-});
-
+})();
